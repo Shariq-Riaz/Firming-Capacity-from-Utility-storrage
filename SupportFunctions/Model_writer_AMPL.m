@@ -400,9 +400,6 @@ if Parameter.en_DR
     CommandP=[CommandP;cellstr('param M_pu = 1e6;')];
     CommandP=[CommandP;cellstr('param M_el = 1e6;')];
     CommandP=[CommandP;cellstr('param M_eu = 1e6;')];
-    CommandP=[CommandP;cellstr('param M_fc = 1e6;')];
-    CommandP=[CommandP;cellstr('param M_cp = 1e6;')];
-    CommandP=[CommandP;cellstr('param M_ce = 1e6;')];
     CommandP=[CommandP;cellstr('param PV_trace_DR{UBus,Time} >=0;')];
     CommandP=[CommandP;cellstr('param Max_chrg_rate_bat{UBus} >=0;')];
     CommandP=[CommandP;cellstr('param Max_dchrg_rate_bat{UBus} >=0;')];
@@ -423,7 +420,7 @@ if Parameter.en_DR
     CommandD=[CommandD;cellstr('var Engy_bat_var {UBus,Time} >=0;')];
     CommandD=[CommandD;cellstr('var Pwr_batc_var {UBus,Time} >=0;')];
     CommandD=[CommandD;cellstr('var Pwr_batd_var {UBus,Time} >=0;')];
-    CommandD=[CommandD;cellstr('var Pwr_pfc_var {UBus,Time} >=0;')];
+    
     
     CommandD=[CommandD;cellstr('\t')];
     
@@ -440,9 +437,6 @@ if Parameter.en_DR
     CommandD=[CommandD;cellstr('var mu_eu_var {UBus,Time} >=0;')];
     CommandD=[CommandD;cellstr('var mu_pv_var {UBus,Time} >=0;')];
     CommandD=[CommandD;cellstr('var mu_sp_var {UBus,Time} >=0;')];
-    CommandD=[CommandD;cellstr('var mu_fc_var {UBus,Time} >=0;')];
-    CommandD=[CommandD;cellstr('var mu_cp_var {UBus,Time} >=0;')];
-    CommandD=[CommandD;cellstr('var mu_ce_var {UBus,Time} >=0;')];
     CommandD=[CommandD;cellstr('\t')];
     
     CommandD=[CommandD;cellstr('### Orthognal maintaining Variables ###')];
@@ -452,9 +446,6 @@ if Parameter.en_DR
     CommandD=[CommandD;cellstr('var b_pl_var {UBus,Time} binary;')];
     CommandD=[CommandD;cellstr('var b_pu_var {UBus,Time} binary;')];
     CommandD=[CommandD;cellstr('var b_eu_var {UBus,Time} binary;')];
-    CommandD=[CommandD;cellstr('var b_fc_var {UBus,Time} binary;')];
-    CommandD=[CommandD;cellstr('var b_cp_var {UBus,Time} binary;')];
-    CommandD=[CommandD;cellstr('var b_ce_var {UBus,Time} binary;')];
     CommandD=[CommandD;cellstr('\n')];
     
     % DR Constraints
@@ -464,10 +455,10 @@ if Parameter.en_DR
     CommandC=[CommandC;cellstr(['subject to KKT_pgp {p in UBus, t in Time}: ',...
         'lambda_pg_var[p,t] - mu_gp_var[p,t]  == -1;'])];
     CommandC=[CommandC;cellstr(['subject to KKT_pbatc {p in UBus, t in Time}: ',...
-        '-lambda_pg_var[p,t] - lambda_e_var[p,t] + mu_pu_var[p,t] - mu_cp_var[p,t]',...
+        '-lambda_pg_var[p,t] - lambda_e_var[p,t] + mu_pu_var[p,t] ',...
         ' == 0;'])];
     CommandC=[CommandC;cellstr(['subject to KKT_pbatd {p in UBus, t in Time}: ',...
-        'lambda_pg_var[p,t] + lambda_e_var[p,t] - mu_pl_var[p,t] + mu_cp_var[p,t] ',...
+        'lambda_pg_var[p,t] + lambda_e_var[p,t] - mu_pl_var[p,t] ',...
         ' == 0;'])];    
     CommandC=[CommandC;cellstr(['subject to KKT_ppv {p in UBus, t in Time}: ',...
         'lambda_pg_var[p,t] + lambda_pv_var[p,t] - mu_pv_var[p,t] == 0;'])];    
@@ -475,10 +466,7 @@ if Parameter.en_DR
         'lambda_pv_var[p,t] - mu_sp_var[p,t] == 0;'])];        
     CommandC=[CommandC;cellstr(['subject to KKT_ebat {p in UBus, t in 1..(T-1)}: ',...
         'lambda_e_var[p,t] - Bat_eff[p]*lambda_e_var[p,t+1]'...
-        ' + mu_eu_var[p,t] - Bat_eff[p]*mu_ce_var[p,t+1] == 0;'])];
-    CommandC=[CommandC;cellstr(['subject to KKT_pfc {p in UBus, t in Time}: ',...
-        '-mu_fc_var[p,t] + mu_ce_var[p,t] + mu_cp_var[p,t] '...
-        '  == 0;'])];
+        ' + mu_eu_var[p,t] == 0;'])];
     CommandC=[CommandC;cellstr('\t')];
     % System equality constraints
     CommandC=[CommandC;cellstr('## System Constraints ##')];
@@ -531,7 +519,6 @@ if Parameter.en_DR
     CommandC=[CommandC;cellstr(['subject to mu_pu_perp_pb_C {p in UBus, t in Time}:',...
         '\n\t\t Pwr_batc_var[p,t] <= Max_chrg_rate_bat[p] ;'])];
     CommandC=[CommandC;cellstr('\t')];
-    
     CommandC=[CommandC;cellstr(['subject to mu_eu_perp_eb_A {p in UBus, t in Time}:',...
         '\n\t\t -Engy_bat_var[p,t] <= M_eu*b_eu_var[p,t] + Max_SOC_bat[p];'])];
     CommandC=[CommandC;cellstr(['subject to mu_eu_perp_eb_B {p in UBus, t in Time}:',...
@@ -540,30 +527,6 @@ if Parameter.en_DR
     CommandC=[CommandC;cellstr(['subject to mu_eu_perp_eb_C {p in UBus, t in Time}:',...
         '\n\t\t Engy_bat_var[p,t] <= Max_SOC_bat[p] ;'])];
     CommandC=[CommandC;cellstr('\t')];
-    % firming capacity limits
-    CommandC=[CommandC;cellstr(['subject to mu_fc_perp_pfc_A {p in UBus, t in Time}:',...
-        '\n\t\t Pwr_pfc_var[p,t] <= M_fc*b_fc_var[p,t];'])];
-    CommandC=[CommandC;cellstr(['subject to mu_fc_perp_pfc_B {p in UBus, t in Time}:',...
-        '\n\t\t mu_fc_var[p,t] <= M_fc * (1 - b_fc_var[p,t]) ;'])];
-    CommandC=[CommandC;cellstr('\t')];
-    
-    CommandC=[CommandC;cellstr(['subject to mu_cp_perp_cp_A {p in UBus, t in Time}:',...
-        '\n\t\t Pwr_pfc_var[p,t] <= M_cp*b_cp_var[p,t] + Max_dchrg_rate_bat[p] - Pwr_batd_var[p,t] + Pwr_batc_var[p,t];'])];
-    CommandC=[CommandC;cellstr(['subject to mu_cp_perp_cp_B {p in UBus, t in Time}:',...
-        '\n\t\t mu_cp_var[p,t] <= M_cp * (1 - b_cp_var[p,t]) ;'])];
-    CommandC=[CommandC;cellstr('\t')];
-    CommandC=[CommandC;cellstr(['subject to mu_cp_perp_cp_C {p in UBus, t in Time}:',...
-        '\n\t\t Pwr_pfc_var[p,t] <= Max_dchrg_rate_bat[p] - Pwr_batd_var[p,t] + Pwr_batc_var[p,t];'])];
-    
-    CommandC=[CommandC;cellstr(['subject to mu_ce_perp_ce_A {p in UBus, t in Time}:',...
-        '\n\t\t Pwr_pfc_var[p,t] <= M_ce*b_ce_var[p,t] + ;'])];
-    CommandC=[CommandC;cellstr(['subject to mu_ce_perp_ce_B {p in UBus, t in Time}:',...
-        '\n\t\t mu_ce_var[p,t] <= M_ce * (1 - b_ce_var[p,t]) ;'])];
-    CommandC=[CommandC;cellstr('\t')];
-    CommandC=[CommandC;cellstr(['subject to mu_ce_perp_ce_C {p in UBus, t in 2..T}:',...
-        '\n\t\t Pwr_pfc_var[p,t] <= Bat_eff[p]*Engy_bat_var[p,t-1];'])];
-    CommandC=[CommandC;cellstr(['subject to mu_ce_perp_ce_C_ini {p in UBus:',...
-        '\n\t\t Pwr_pfc_var[p,1] <= Bat_eff[p]*Engy_bat_ini[p];'])];
 end
 
 Command=[CommandS;CommandCS;CommandP;CommandD;CommandO;CommandC];
